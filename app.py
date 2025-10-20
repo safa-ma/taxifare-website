@@ -39,14 +39,8 @@ map_data = pd.DataFrame({
 })
 st.map(map_data)
 
-
 url = 'https://taxifare.lewagon.ai/predict'
 
-if url == 'https://taxifare.lewagon.ai/predict':
-
-    st.markdown('Maybe you want to use your own API for the prediction, not the one provided by Le Wagon...')
-
-## Finally, we can display the prediction to the user
 if st.button("💰 Predict Fare"):
     params = {
         "pickup_datetime": pickup_datetime,
@@ -58,47 +52,20 @@ if st.button("💰 Predict Fare"):
     }
 
     try:
-        response = requests.get(url, params=params)
+        response = requests.get("https://taxifare.lewagon.ai/predict", params=params)
         response.raise_for_status()
+
         result = response.json()
-        prediction = result.get("prediction")
+        st.write("📦 API Response:", result)
+
+        prediction = result.get("fare")
 
         if prediction is not None:
             st.success(f"💵 Estimated Fare: **${prediction:.2f}**")
         else:
             st.warning("⚠️ No prediction returned from the API. Please check your inputs.")
+
     except Exception as e:
         st.error(f"An error occurred while connecting to the API: {e}")
-
-# 🧭 رسم المسار بين نقطتي الانطلاق والوصول
-st.markdown("### 🧭 Route Visualization")
-route_data = pd.DataFrame({
-    "start_lat": [pickup_latitude],
-    "start_lon": [pickup_longitude],
-    "end_lat": [dropoff_latitude],
-    "end_lon": [dropoff_longitude]
-})
-
-layer = pdk.Layer(
-    "LineLayer",
-    data=route_data,
-    get_source_position=["start_lon", "start_lat"],
-    get_target_position=["end_lon", "end_lat"],
-    get_color=[255, 0, 0],
-    get_width=4,
-)
-
-st.pydeck_chart(
-    pdk.Deck(
-        map_style="mapbox://styles/mapbox/light-v9",
-        initial_view_state=pdk.ViewState(
-            latitude=(pickup_latitude + dropoff_latitude) / 2,
-            longitude=(pickup_longitude + dropoff_longitude) / 2,
-            zoom=11,
-            pitch=0,
-        ),
-        layers=[layer],
-    )
-)
 
 st.markdown("---")
