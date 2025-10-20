@@ -20,7 +20,7 @@ dropoff_latitude = st.number_input("Dropoff Latitude", value=40.748817)
 passenger_count = st.number_input("Passenger Count", min_value=1, max_value=10, value=1)
 
 
-url = 'https://taxifare-803101541517.europe-west1.run.app'
+url = 'https://taxifare.lewagon.ai/'
 
 if url == 'https://taxifare.lewagon.ai/predict':
 
