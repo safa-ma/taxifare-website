@@ -2,22 +2,42 @@ import streamlit as st
 import requests
 from datetime import datetime
 import pandas as pd
-'''
-# TaxiFareModel front
-'''
+import pydeck as pdk
+
+st.set_page_config(page_title="Taxi Fare Predictor", page_icon="🚕", layout="centered")
+
+st.title("🚖 Taxi Fare Prediction App")
+st.markdown("Enter your ride details below to estimate your taxi fare!")
+
+st.markdown("---")
 
 
-st.header("Select Ride Details")
+st.header("📋 Ride Details")
 
-date = st.date_input("Pickup Date", datetime.today())
-time = st.time_input("Pickup Time", datetime.now().time())
+col1, col2 = st.columns(2)
+
+with col1:
+    date = st.date_input("Pickup Date", datetime.today())
+    time = st.time_input("Pickup Time", datetime.now().time())
+
+with col2:
+    passenger_count = st.slider("👥 Number of Passengers", 1, 8, 1)
+
 pickup_datetime = datetime.combine(date, time).strftime("%Y-%m-%d %H:%M:%S")
+
+st.subheader("📍 Locations")
 
 pickup_longitude = st.number_input("Pickup Longitude", value=-73.985428)
 pickup_latitude = st.number_input("Pickup Latitude", value=40.748817)
 dropoff_longitude = st.number_input("Dropoff Longitude", value=-73.985428)
-dropoff_latitude = st.number_input("Dropoff Latitude", value=40.748817)
-passenger_count = st.number_input("Passenger Count", min_value=1, max_value=10, value=1)
+dropoff_latitude = st.number_input("Dropoff Latitude", value=40.768817)
+
+st.markdown("### 🗺️ Trip Map")
+map_data = pd.DataFrame({
+    "lat": [pickup_latitude, dropoff_latitude],
+    "lon": [pickup_longitude, dropoff_longitude]
+})
+st.map(map_data)
 
 
 url = 'https://taxifare.lewagon.ai/predict'
@@ -27,33 +47,58 @@ if url == 'https://taxifare.lewagon.ai/predict':
     st.markdown('Maybe you want to use your own API for the prediction, not the one provided by Le Wagon...')
 
 ## Finally, we can display the prediction to the user
-params = {
-    "pickup_datetime": pickup_datetime,
-    "pickup_longitude": pickup_longitude,
-    "pickup_latitude": pickup_latitude,
-    "dropoff_longitude": dropoff_longitude,
-    "dropoff_latitude": dropoff_latitude,
-    "passenger_count": passenger_count
-}
-if st.button("Predict Fare 💰"):
+if st.button("💰 Predict Fare"):
+    params = {
+        "pickup_datetime": pickup_datetime,
+        "pickup_longitude": pickup_longitude,
+        "pickup_latitude": pickup_latitude,
+        "dropoff_longitude": dropoff_longitude,
+        "dropoff_latitude": dropoff_latitude,
+        "passenger_count": passenger_count
+    }
+
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-
-        data = response.json()
-        prediction = data.get("prediction")
+        result = response.json()
+        prediction = result.get("prediction")
 
         if prediction is not None:
-            st.success(f"💵 Estimated Fare: ${float(prediction):.2f}")
+            st.success(f"💵 Estimated Fare: **${prediction:.2f}**")
         else:
             st.warning("⚠️ No prediction returned from the API. Please check your inputs.")
-
-    except requests.exceptions.RequestException as e:
-        st.error(f"🚨 Error while connecting to the API: {e}")
     except Exception as e:
-        st.error(f"⚠️ Unexpected error: {e}")
-st.header("Pickup and Arrive Point")
-st.map(pd.DataFrame({
-    'lat': [pickup_latitude, dropoff_latitude],
-    'lon': [pickup_longitude, dropoff_longitude]
-}, columns=['lat', 'lon']))
+        st.error(f"An error occurred while connecting to the API: {e}")
+
+# 🧭 رسم المسار بين نقطتي الانطلاق والوصول
+st.markdown("### 🧭 Route Visualization")
+route_data = pd.DataFrame({
+    "start_lat": [pickup_latitude],
+    "start_lon": [pickup_longitude],
+    "end_lat": [dropoff_latitude],
+    "end_lon": [dropoff_longitude]
+})
+
+layer = pdk.Layer(
+    "LineLayer",
+    data=route_data,
+    get_source_position=["start_lon", "start_lat"],
+    get_target_position=["end_lon", "end_lat"],
+    get_color=[255, 0, 0],
+    get_width=4,
+)
+
+st.pydeck_chart(
+    pdk.Deck(
+        map_style="mapbox://styles/mapbox/light-v9",
+        initial_view_state=pdk.ViewState(
+            latitude=(pickup_latitude + dropoff_latitude) / 2,
+            longitude=(pickup_longitude + dropoff_longitude) / 2,
+            zoom=11,
+            pitch=0,
+        ),
+        layers=[layer],
+    )
+)
+
+st.markdown("---")
