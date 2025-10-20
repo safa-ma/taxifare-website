@@ -35,16 +35,24 @@ params = {
     "dropoff_latitude": dropoff_latitude,
     "passenger_count": passenger_count
 }
-if st.button("Predict Fare"):
+if st.button("Predict Fare 💰"):
     try:
         response = requests.get(url, params=params)
-        response.raise_for_status()  # Ensure no error occurred during the request
-        prediction = response.json().get("prediction")
-        st.success(f"Predicted Fare: ${prediction:.2f}")
-    except Exception as e:
-        st.error(f"An error occurred while connecting to the API: {e}")
+        response.raise_for_status()
 
-st.header("pickup and arrive point")
+        data = response.json()
+        prediction = data.get("prediction")
+
+        if prediction is not None:
+            st.success(f"💵 Estimated Fare: ${float(prediction):.2f}")
+        else:
+            st.warning("⚠️ No prediction returned from the API. Please check your inputs.")
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"🚨 Error while connecting to the API: {e}")
+    except Exception as e:
+        st.error(f"⚠️ Unexpected error: {e}")
+st.header("Pickup and Arrive Point")
 st.map(pd.DataFrame({
     'lat': [pickup_latitude, dropoff_latitude],
     'lon': [pickup_longitude, dropoff_longitude]
